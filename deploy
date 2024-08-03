@@ -1,0 +1,51 @@
+#!/bin/bash
+# Prosody Container Script - developed by acidvegas (https://git.acid.vegas/prosody)
+
+set -xev
+
+create_container() {
+	NAME=$1
+
+	incus storage create $NAME-pool dir
+	incus launch images:debian/12 $NAME-container -s $NAME-pool	
+	incus config set $NAME-container boot.autostart true
+	sleep 10 # Delay to allow the container to start and get an IP address from the DHCP server
+	incus exec $NAME-container -- apt update  -y
+	incus exec $NAME-container -- apt upgrade -y
+	incus exec $NAME-container -- apt install -y git nano unattended-upgrades wget
+	incus exec $NAME-container -- useradd -m -s /bin/bash agent
+	incus exec $NAME-container -- journalctl --vacuum-time=1d
+	incus exec $NAME-container -- sh -c 'printf "[Journal]\nStorage=volatile\nSplitMode=none\nRuntimeMaxUse=500K\n" > /etc/systemd/journald.conf'
+	incus exec $NAME-container -- systemctl restart systemd-journald
+}
+
+setup_prosody() {
+    PORT_C2S=5222 # Default 5222
+    PORT_S2S=5269 # Default 5269
+    CONTAINER_IP=$(incus list | grep gotify-container | awk '{print $6}')
+
+    create_container prosody
+    
+    incus config set prosody-container boot.autostart true
+    incus config device add prosody-container prosody-c2s-port proxy listen=tcp:0.0.0.0:$PORT_C2S connect=tcp:$CONTAINER_IP:5222
+    incus config device add prosody-container prosody-s2s-port proxy listen=tcp:0.0.0.0:$PORT_S2S connect=tcp:$CONTAINER_IP:5269
+
+    incus exec prosody-container -- apt-get install certbot libevent-dev prosody -y
+
+    incus exec prosody-container -- certbot certonly --standalone -d xmpp.supernets.org -d muc.supernets.org -m nobody@no.name --agree-tos --non-interactive --no-eff-email
+
+    incus exec prosody-container -- sh -c 'printf "[Unit]\nDescription=cerbot renewal\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/certbot renew -n --quiet --agree-tos --deploy-hook \"prosodyctl --root cert import /etc/letsencrypt/live\"\n" > /etc/systemd/system/certbot.service'
+	incus exec prosody-container -- sh -c 'printf "[Unit]\nDescription=cerbot renewal timer\n\n[Timer]\nOnCalendar=0/12:00:00\nRandomizedDelaySec=1h\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n" > /etc/systemd/system/certbot.timer'
+
+	incus exec prosody-container -- systemctl enable certbot.timer
+	incus exec prosody-container -- systemctl start certbot.timer
+
+    incus file push prosody.cfg.lua prosody-container:/etc/prosody/prosody.cfg.lua
+
+    # Need to set the certifcate permissions to allow prosody to read it
+    #sudo ln -s /etc/letsencrypt/live/xmpp.supernets.org/privkey.pem /etc/prosody/certs/xmpp.supernets.org.key
+    #sudo ln -s /etc/letsencrypt/live/xmpp.supernets.org/privkey.pem /etc/prosody/certs/xmpp.supernets.org.key
+
+    incus exec prosody-container -- systemctl enable prosody
+    incus exec prosody-container -- systemctl start prosody
+}

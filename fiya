@@ -1,0 +1,101 @@
+#!/bin/bash
+# Prosody XMPP Firewall - developed by acidvegas (https://git.acid.vegas/prosody)
+
+set -xev
+
+# Configuration
+IP_SSH="changeme"
+PORT_SSH=22        # Default 22
+PORT_XMPP_C2S=5222 # Default 5222
+PORT_XMPP_S2S=5269 # Default 5269
+
+CONTAINER_IP=$(incus list | grep prosody-container | awk '{print $6}')
+SUBNET=$(echo $CONTAINER_IP | sed -E 's/([0-9]+\.[0-9]+\.[0-9]+)\.[0-9]+/\1.0\/24/')
+
+# -------------------------------------------------- #
+
+# Kernel hardening settings
+mkdir -p /etc/sysctl.d
+{
+  echo "net.ipv4.conf.all.accept_source_route = 0"
+  echo "net.ipv6.conf.all.accept_source_route = 0"
+  echo "net.ipv4.conf.all.rp_filter = 1"
+  echo "net.ipv4.conf.default.rp_filter = 1"
+  echo "net.ipv4.conf.all.accept_redirects = 0"
+  echo "net.ipv6.conf.all.accept_redirects = 0"
+  echo "net.ipv4.conf.default.accept_redirects = 0"
+  echo "net.ipv6.conf.default.accept_redirects = 0"
+  echo "net.ipv4.conf.all.log_martians = 1"
+  echo "kernel.randomize_va_space = 2"
+  echo "fs.suid_dumpable = 0"
+  echo "net.ipv4.ip_forward=1"
+} > /etc/sysctl.d/99-custom-hardening.conf
+
+# Apply hardening settings
+sysctl -p /etc/sysctl.d/99-custom-hardening.conf
+
+# -------------------------------------------------- #
+
+# Flush existing rules
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+
+# Default chain policies
+iptables -P INPUT ACCEPT
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+# Common Firewall rules
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
+iptables -A INPUT -p icmp --icmp-type port-unreachable -j DROP
+iptables -A INPUT -i lo -j ACCEPT
+
+# -------------------------------------------------- #
+
+# Allow container NAT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables -A FORWARD -i incusbr0 -o eth0 -j ACCEPT
+iptables -A FORWARD -i eth0 -o incusbr0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# Allow container DHCP
+iptables -I INPUT -i incusbr0 -p udp --dport 67:68 -j ACCEPT
+iptables -I FORWARD -i incusbr0 -p udp --dport 67:68 -j ACCEPT
+
+# Allow container DNS
+iptables -A INPUT -i incusbr0 -p udp --dport 53 -j ACCEPT
+iptables -A INPUT -i incusbr0 -p tcp --dport 53 -j ACCEPT
+iptables -A FORWARD -i incusbr0 -o eth0 -p udp --dport 53 -j ACCEPT
+iptables -A FORWARD -i incusbr0 -o eth0 -p tcp --dport 53 -j ACCEPT
+
+# -------------------------------------------------- #
+
+# Allow SSH
+iptables -A INPUT -p tcp -s $IP_SSH --dport $PORT_SSH -j ACCEPT
+
+# Allow Certbot
+iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination $CONTAINER_IP:80
+iptables -t nat -A POSTROUTING -s $SUBNET -o eth0 -j MASQUERADE
+iptables -A FORWARD -d ${CONTAINER_IP}/32 -o incusbr0 -p tcp --dport 80 -j ACCEPT
+iptables -A FORWARD -s ${CONTAINER_IP}/32 -i incusbr0 -j ACCEPT
+
+# Allow Prosody
+iptables -A INPUT -p tcp --dport $PORT_XMPP_C2S -j ACCEPT
+iptables -A INPUT -p tcp --dport $PORT_XMPP_S2S -j ACCEPT
+
+# -------------------------------------------------- #
+
+# Save rules (iptables-persistent package)
+iptables-save > /etc/iptables/iptables.rules
+
+# Create and configure the iptables service
+printf '#!/bin/sh\nexec 2>&1\niptables-restore < /etc/iptables/iptables.rules\nexec chpst -b iptables pause\n' > /etc/sv/iptables/run
+chmod +x /etc/sv/iptables/run
+ln -sf /etc/sv/iptables /var/service/ && sv restart iptables
+
+# Show rules
+iptables -L -v -n
