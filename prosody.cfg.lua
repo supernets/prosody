@@ -47,6 +47,7 @@ VirtualHost "xmpp.supernets.org"
     min_seconds_between_registrations = 86400 -- register_limits
     registration_throttle_cache_size = 100 -- register_limits
     s2s_require_encryption = true
+    disco_items = { "muc.supernets.org" } -- disco
 
     ssl = {
         certificate = "/etc/prosody/certs/xmpp.supernets.org/fullchain.pem";
