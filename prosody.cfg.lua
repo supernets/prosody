@@ -23,7 +23,6 @@ VirtualHost "xmpp.supernets.org"
         "disco";                   -- https://prosody.im/doc/modules/mod_disco
         "limits";                  -- https://prosody.im/doc/modules/mod_limits
         "mam";                     -- https://prosody.im/doc/modules/mod_mam
-        "muc_mam";                 -- https://prosody.im/doc/modules/mod_muc_mam
         "offline";                 -- https://prosody.im/doc/modules/mod_offline
         "pep";                     -- https://prosody.im/doc/modules/mod_pep
         "ping";                    -- https://prosody.im/doc/modules/mod_ping
@@ -35,6 +34,7 @@ VirtualHost "xmpp.supernets.org"
         "saslauth";                -- https://prosody.im/doc/modules/mod_saslauth
         "smacks";                  -- https://prosody.im/doc/modules/mod_smacks
         "tls";                     -- https://prosody.im/doc/modules/mod_tls
+        "vcard";                   -- https://prosody.im/doc/modules/mod_vcard
         "user_account_management"; -- https://prosody.im/doc/modules/mod_user_account_management
         "watchregistrations";      -- https://prosody.im/doc/modules/mod_watchregistrations
         "omemo_all_access";        -- https://modules.prosody.im/mod_omemo_all_access
@@ -53,5 +53,18 @@ VirtualHost "xmpp.supernets.org"
         key = "/etc/prosody/certs/xmpp.supernets.org/privkey.pem";
     }
 
-    Component "muc.supernets.org" "muc"
-        name = "SuperNETs XMPP Chatrooms"
+ Component "muc.supernets.org" "muc"
+    name = "SuperNETs XMPP Chatrooms"
+    modules_enabled = {
+        "disco";   -- https://prosody.im/doc/modules/mod_disco
+        "muc";     -- https://prosody.im/doc/modules/mod_muc
+        "muc_mam"; -- https://prosody.im/doc/modules/mod_muc_mam
+        "ping";    -- https://prosody.im/doc/modules/mod_ping
+        "tls";     -- https://prosody.im/doc/modules/mod_tls
+        "vcard";   -- https://prosody.im/doc/modules/mod_vcard
+    }
+
+    ssl = {
+        certificate = "/etc/prosody/certs/xmpp.supernets.org/fullchain.pem";
+        key = "/etc/prosody/certs/xmpp.supernets.org/privkey.pem";
+    }
