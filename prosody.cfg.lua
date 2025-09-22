@@ -9,7 +9,9 @@ limits = {
     s2sin = { rate = "10kb/s"; burst = "5s"; };
 }
 
-log = "*syslog"
+log = {
+    "*syslog";
+}
 
 VirtualHost "xmpp.supernets.org"
     modules_enabled = {
