@@ -56,14 +56,14 @@ VirtualHost "xmpp.supernets.org"
  Component "muc.supernets.org" "muc"
     name = "SuperNETs XMPP Chatrooms"
     modules_enabled = {
-        "dialback";                -- https://prosody.im/doc/modules/mod_dialback
-        "disco";   -- https://prosody.im/doc/modules/mod_disco
-        "muc";     -- https://prosody.im/doc/modules/mod_muc
-        "muc_mam"; -- https://prosody.im/doc/modules/mod_muc_mam
-        "ping";    -- https://prosody.im/doc/modules/mod_ping
-        "s2s";     -- https://prosody.im/doc/s2s
-        "tls";     -- https://prosody.im/doc/modules/mod_tls
-        "vcard";   -- https://prosody.im/doc/modules/mod_vcard
+        "dialback"; -- https://prosody.im/doc/modules/mod_dialback
+        "disco";    -- https://prosody.im/doc/modules/mod_disco
+        "muc";      -- https://prosody.im/doc/modules/mod_muc
+        "muc_mam";  -- https://prosody.im/doc/modules/mod_muc_mam
+        "ping";     -- https://prosody.im/doc/modules/mod_ping
+        "s2s";      -- https://prosody.im/doc/s2s
+        "tls";      -- https://prosody.im/doc/modules/mod_tls
+        "vcard";    -- https://prosody.im/doc/modules/mod_vcard
     }
 
     ssl = {
