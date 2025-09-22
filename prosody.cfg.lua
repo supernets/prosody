@@ -19,7 +19,6 @@ VirtualHost "xmpp.supernets.org"
         "carbons";                 -- https://prosody.im/doc/modules/mod_carbons
         "cloud_notify";            -- https://prosody.im/doc/modules/mod_cloud_notify
         "csi_simple";              -- https://prosody.im/doc/modules/mod_csi_simple
-        "dialback";                -- https://prosody.im/doc/modules/mod_dialback
         "disco";                   -- https://prosody.im/doc/modules/mod_disco
         "limits";                  -- https://prosody.im/doc/modules/mod_limits
         "mam";                     -- https://prosody.im/doc/modules/mod_mam
@@ -57,10 +56,12 @@ VirtualHost "xmpp.supernets.org"
  Component "muc.supernets.org" "muc"
     name = "SuperNETs XMPP Chatrooms"
     modules_enabled = {
+        "dialback";                -- https://prosody.im/doc/modules/mod_dialback
         "disco";   -- https://prosody.im/doc/modules/mod_disco
         "muc";     -- https://prosody.im/doc/modules/mod_muc
         "muc_mam"; -- https://prosody.im/doc/modules/mod_muc_mam
         "ping";    -- https://prosody.im/doc/modules/mod_ping
+        "s2s";     -- https://prosody.im/doc/s2s
         "tls";     -- https://prosody.im/doc/modules/mod_tls
         "vcard";   -- https://prosody.im/doc/modules/mod_vcard
     }
