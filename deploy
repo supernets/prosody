@@ -34,7 +34,7 @@ setup_prosody() {
 
     incus exec prosody-container -- apt-get install certbot libevent-dev prosody -y
 
-    incus exec prosody-container -- certbot certonly --standalone -d xmpp.supernets.org -d muc.supernets.org -m nobody@no.name --agree-tos --non-interactive --no-eff-email
+    incus exec prosody-container -- certbot certonly --standalone -d xmpp.supernets.org -d muc.supernets.org -d upload.xmpp.supernets.org -m nobody@no.name --agree-tos --non-interactive --no-eff-email
 
     incus exec prosody-container -- sh -c 'printf "[Unit]\nDescription=cerbot renewal\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/certbot renew -n --quiet --agree-tos --deploy-hook \"prosodyctl --root cert import /etc/letsencrypt/live\"\n" > /etc/systemd/system/certbot.service'
 	incus exec prosody-container -- sh -c 'printf "[Unit]\nDescription=cerbot renewal timer\n\n[Timer]\nOnCalendar=0/12:00:00\nRandomizedDelaySec=1h\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n" > /etc/systemd/system/certbot.timer'
