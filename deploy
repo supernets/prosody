@@ -22,13 +22,15 @@ create_container() {
 setup_prosody() {
     PORT_C2S=5222 # Default 5222
     PORT_S2S=5269 # Default 5269
+	PORT_UPLOAD=5281 # Default 5281
     CONTAINER_IP=$(incus list | grep gotify-container | awk '{print $6}')
 
     create_container prosody
     
     incus config set prosody-container boot.autostart true
-    incus config device add prosody-container prosody-c2s-port proxy listen=tcp:0.0.0.0:$PORT_C2S connect=tcp:$CONTAINER_IP:5222
-    incus config device add prosody-container prosody-s2s-port proxy listen=tcp:0.0.0.0:$PORT_S2S connect=tcp:$CONTAINER_IP:5269
+    incus config device add prosody-container prosody-c2s-port proxy    listen=tcp:0.0.0.0:$PORT_C2S    connect=tcp:$CONTAINER_IP:5222
+    incus config device add prosody-container prosody-s2s-port proxy    listen=tcp:0.0.0.0:$PORT_S2S    connect=tcp:$CONTAINER_IP:5269
+	incus config device add prosody-container prosody-upload-port proxy listen=tcp:0.0.0.0:$PORT_UPLOAD connect=tcp:$CONTAINER_IP:5281
 
     incus exec prosody-container -- apt-get install certbot libevent-dev prosody -y
 
