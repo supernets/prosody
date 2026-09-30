@@ -1,0 +1,12 @@
+services:
+  xmpp:
+    build: .
+    image: supernets-xmpp:0.12
+    container_name: xmpp
+    restart: unless-stopped
+    # host networking => Prosody sees REAL client IPs (no docker bridge NAT),
+    # so mod_limits rate-limiting keys on the actual remote address.
+    network_mode: host
+    volumes:
+      - ./etc:/etc/prosody
+      - ./data:/var/lib/prosody
